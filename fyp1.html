@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Bin Monitoring System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        .gauge {
+            background: conic-gradient(from 0deg, #ff4757 0% 30%, #ffa502 30% 70%, #2ed573 70% 100%);
+            border-radius: 50%;
+            position: relative;
+        }
+        .gauge::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            bottom: 8px;
+            background: white;
+            border-radius: 50%;
+        }
+        .notification-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .chart-bar {
+            transition: height 0.3s ease;
+        }
+        .lark-card {
+            background: #ffffff;
+            border: 1px solid #e8eaed;
+            box-shadow: 0 1px 3px rgba(60, 64, 67, 0.1);
+            transition: all 0.2s ease;
+        }
+        .lark-card:hover {
+            box-shadow: 0 2px 8px rgba(60, 64, 67, 0.15);
+            border-color: #dadce0;
+        }
+        .lark-primary {
+            background: #1a73e8;
+        }
+        .lark-primary-light {
+            background: #e8f0fe;
+            color: #1a73e8;
+        }
+        .lark-success {
+            background: #34a853;
+        }
+        .lark-success-light {
+            background: #e6f4ea;
+            color: #137333;
+        }
+        .lark-warning {
+            background: #fbbc04;
+        }
+        .lark-warning-light {
+            background: #fef7e0;
+            color: #b06000;
+        }
+        .lark-error {
+            background: #ea4335;
+        }
+        .lark-error-light {
+            background: #fce8e6;
+            color: #c5221f;
+        }
+        .status-indicator {
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+        @keyframes statusPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .lark-button {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+        }
+        .lark-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(60, 64, 67, 0.15);
+        }
+        .lark-button:active {
+            transform: translateY(0);
+        }
+        .lark-bg {
+            background: #f8f9fa;
+        }
+        .tab-content {
+            animation: fadeIn 0.25s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-top: 1px solid #e8eaed;
+            z-index: 50;
+        }
+        .nav-item {
+            transition: all 0.2s ease;
+            color: #5f6368;
+        }
+        .nav-item.active {
+            color: #1a73e8;
+        }
+        .nav-item:hover {
+            color: #1a73e8;
+        }
+        .content-wrapper {
+            padding-bottom: 120px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* iOS Safari specific fixes */
+        body {
+            -webkit-overflow-scrolling: touch;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Responsive design improvements */
+        @media (max-width: 640px) {
+            .content-wrapper {
+                padding: 1rem;
+                padding-bottom: 140px;
+            }
+            
+            .grid-cols-1 {
+                gap: 0.75rem;
+            }
+            
+            .lark-card {
+                margin-bottom: 0.75rem;
+            }
+        }
+        
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .content-wrapper {
+                padding: 1.5rem;
+                padding-bottom: 130px;
+            }
+        }
+        
+        @media (min-width: 1025px) {
+            .content-wrapper {
+                max-width: 1200px;
+                padding: 2rem;
+                padding-bottom: 2rem;
+                padding-top: 6rem;
+            }
+            
+            .bottom-nav {
+                display: none !important;
+            }
+            
+            .desktop-nav {
+                display: flex !important;
+            }
+        }
+        
+        /* Tablet navigation */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .bottom-nav {
+                display: none !important;
+            }
+            
+            .desktop-nav {
+                display: flex !important;
+            }
+            
+            .content-wrapper {
+                padding-top: 5rem;
+            }
+        }
+        
+        /* Touch-friendly improvements */
+        .lark-button, .nav-item {
+            min-height: 44px;
+            min-width: 44px;
+            touch-action: manipulation;
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Better mobile viewport handling */
+        .mobile-safe {
+            padding-top: env(safe-area-inset-top);
+        }
+        
+        /* Additional bottom padding for iOS safe area */
+        .content-wrapper {
+            padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+        }
+        
+        @media (max-width: 640px) {
+            .content-wrapper {
+                padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+            }
+        }
+        
+        /* Desktop navigation */
+        .desktop-nav {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-bottom: 1px solid #e8eaed;
+            z-index: 50;
+            padding: 0.75rem 0;
+        }
+        
+        .desktop-nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        /* Improved scrollable areas */
+        .scrollable {
+            -webkit-overflow-scrolling: touch;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+        }
+        
+        /* Better card spacing on mobile */
+        @media (max-width: 640px) {
+            .lg\\:grid-cols-3 {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+        }
+        
+        /* Tablet optimizations */
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .lg\\:grid-cols-3 {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+        }
+        .lark-metric-card {
+            background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+        }
+        .lark-metric-success {
+            background: linear-gradient(135deg, #34a853 0%, #4caf50 100%);
+        }
+        .lark-metric-warning {
+            background: linear-gradient(135deg, #fbbc04 0%, #ff9800 100%);
+        }
+        .lark-header {
+            background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+        }
+        .lark-divider {
+            border-color: #e8eaed;
+        }
+    </style>
+</head>
+<body class="lark-bg min-h-screen font-sans">
+    <!-- Desktop Navigation -->
+    <nav class="desktop-nav">
+        <div class="desktop-nav-content">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 lark-primary rounded-lg flex items-center justify-center">
+                        <span class="text-white text-lg">🗑️</span>
+                    </div>
+                    <h1 class="text-lg font-semibold text-gray-900">Smart Bin Monitor</h1>
+                </div>
+                <div class="flex space-x-1">
+                    <button onclick="showTab('dashboard')" id="desktop-tab-dashboard" class="nav-item active px-4 py-2 rounded-lg text-sm font-medium">
+                        📊 Dashboard
+                    </button>
+                    <button onclick="showTab('log')" id="desktop-tab-log" class="nav-item px-4 py-2 rounded-lg text-sm font-medium text-gray-500">
+                        📋 Logs
+                    </button>
+                    <button onclick="showTab('notifications')" id="desktop-tab-notifications" class="nav-item px-4 py-2 rounded-lg text-sm font-medium text-gray-500">
+                        🔔 Alerts
+                    </button>
+                    <button onclick="showTab('history')" id="desktop-tab-history" class="nav-item px-4 py-2 rounded-lg text-sm font-medium text-gray-500">
+                        📈 History
+                    </button>
+                    <button onclick="showTab('about')" id="desktop-tab-about" class="nav-item px-4 py-2 rounded-lg text-sm font-medium text-gray-500">
+                        ℹ️ About
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="content-wrapper container mx-auto mobile-safe">
+        <!-- Header -->
+        <header class="mb-4 lg:mb-6 lg:mt-20">
+            <div class="lark-card rounded-xl p-4 lg:p-6 lark-header text-white">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                            <span class="text-xl lg:text-2xl">🗑️</span>
+                        </div>
+                        <div>
+                            <h1 class="text-lg lg:text-xl font-semibold mb-1">Smart Bin Monitor</h1>
+                            <p class="text-white/80 text-xs lg:text-sm">Real-time Waste Management</p>
+                        </div>
+                    </div>
+                    <div class="text-left sm:text-right">
+                        <div class="flex items-center sm:justify-end mb-1">
+                            <div class="w-2 h-2 bg-green-300 rounded-full mr-2 status-indicator"></div>
+                            <span class="text-xs lg:text-sm font-medium">Online</span>
+                        </div>
+                        <p class="text-white/70 text-xs">Last updated: Now</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <div class="flex justify-around items-center py-2">
+                <button onclick="showTab('dashboard')" id="tab-dashboard" class="nav-item active flex flex-col items-center py-2 px-4">
+                    <span class="text-xl mb-1">📊</span>
+                    <span class="text-xs">Dashboard</span>
+                </button>
+                <button onclick="showTab('log')" id="tab-log" class="nav-item flex flex-col items-center py-2 px-4 text-gray-500">
+                    <span class="text-xl mb-1">📋</span>
+                    <span class="text-xs">Logs</span>
+                </button>
+                <button onclick="showTab('notifications')" id="tab-notifications" class="nav-item flex flex-col items-center py-2 px-4 text-gray-500">
+                    <span class="text-xl mb-1">🔔</span>
+                    <span class="text-xs">Alerts</span>
+                </button>
+                <button onclick="showTab('history')" id="tab-history" class="nav-item flex flex-col items-center py-2 px-4 text-gray-500">
+                    <span class="text-xl mb-1">📈</span>
+                    <span class="text-xs">History</span>
+                </button>
+                <button onclick="showTab('about')" id="tab-about" class="nav-item flex flex-col items-center py-2 px-4 text-gray-500">
+                    <span class="text-xl mb-1">ℹ️</span>
+                    <span class="text-xs">About</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 mb-4 lg:mb-6">
+                <!-- Status Cards -->
+                <div class="lark-card rounded-lg p-4 lg:p-5 lark-metric-success text-white">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-8 h-8 lg:w-10 lg:h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                            <span class="text-lg lg:text-xl">📶</span>
+                        </div>
+                        <div class="w-2 h-2 bg-white rounded-full status-indicator"></div>
+                    </div>
+                    <h3 class="text-sm lg:text-base font-medium mb-2 text-white/90">WiFi Status</h3>
+                    <div class="text-lg lg:text-xl font-semibold mb-1">Connected</div>
+                    <p class="text-white/70 text-xs lg:text-sm">Strong Signal (-45 dBm)</p>
+                </div>
+
+                <div class="lark-card rounded-lg p-4 lg:p-5 lark-metric-warning text-white">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-8 h-8 lg:w-10 lg:h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                            <span class="text-lg lg:text-xl">📊</span>
+                        </div>
+                        <div class="gauge w-5 h-5 lg:w-6 lg:h-6"></div>
+                    </div>
+                    <h3 class="text-sm lg:text-base font-medium mb-2 text-white/90">Fill Level</h3>
+                    <div class="text-xl lg:text-2xl font-semibold mb-1" id="fill-level">75%</div>
+                    <p class="text-white/70 text-xs lg:text-sm">Nearly Full</p>
+                </div>
+
+                <div class="lark-card rounded-lg p-4 lg:p-5 lark-metric-card text-white sm:col-span-2 lg:col-span-1">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-8 h-8 lg:w-10 lg:h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                            <span class="text-lg lg:text-xl">🚪</span>
+                        </div>
+                        <div id="lid-status" class="w-5 h-5 lg:w-6 lg:h-6 bg-white/30 rounded-full flex items-center justify-center">
+                            <span class="text-white text-xs lg:text-sm">✓</span>
+                        </div>
+                    </div>
+                    <h3 class="text-sm lg:text-base font-medium mb-2 text-white/90">Lid Status</h3>
+                    <div class="text-lg lg:text-xl font-semibold mb-1" id="lid-text">Closed</div>
+                    <p class="text-white/70 text-xs lg:text-sm">Normal Status</p>
+                </div>
+            </div>
+
+            <!-- Real-time Chart -->
+            <div class="lark-card rounded-lg p-4 lg:p-6 mb-4 lg:mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 lg:mb-5 gap-2">
+                    <div>
+                        <h3 class="text-base lg:text-lg font-medium text-gray-900">📈 Real-time Chart</h3>
+                        <p class="text-gray-600 text-xs lg:text-sm">Fill Level (24 Hours)</p>
+                    </div>
+                    <div class="text-left sm:text-right">
+                        <div class="text-lg lg:text-xl font-semibold text-orange-600">75%</div>
+                        <div class="text-xs text-gray-500">Current</div>
+                    </div>
+                </div>
+                <div class="flex items-end justify-between h-24 lg:h-28 bg-gray-50 rounded-lg p-3 lg:p-4 overflow-x-auto">
+                    <div class="chart-bar bg-blue-500 w-4 lg:w-5 rounded-t flex-shrink-0" style="height: 20%"></div>
+                    <div class="chart-bar bg-blue-500 w-4 lg:w-5 rounded-t flex-shrink-0" style="height: 35%"></div>
+                    <div class="chart-bar bg-green-500 w-4 lg:w-5 rounded-t flex-shrink-0" style="height: 50%"></div>
+                    <div class="chart-bar bg-yellow-500 w-4 lg:w-5 rounded-t flex-shrink-0" style="height: 65%"></div>
+                    <div class="chart-bar bg-orange-500 w-4 lg:w-5 rounded-t flex-shrink-0" style="height: 75%"></div>
+                    <div class="chart-bar bg-orange-500 w-4 lg:w-5 rounded-t flex-shrink-0" style="height: 80%"></div>
+                    <div class="chart-bar bg-red-500 w-4 lg:w-5 rounded-t flex-shrink-0" style="height: 90%"></div>
+                    <div class="chart-bar bg-red-500 w-4 lg:w-5 rounded-t flex-shrink-0" style="height: 85%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-500 mt-3 px-1">
+                    <span>00:00</span>
+                    <span>06:00</span>
+                    <span>12:00</span>
+                    <span>18:00</span>
+                    <span>24:00</span>
+                </div>
+            </div>
+
+            <!-- Control Buttons -->
+            <div class="lark-card rounded-lg p-4 lg:p-6">
+                <h3 class="text-base lg:text-lg font-medium text-gray-900 mb-4 lg:mb-5">🎛️ Lid Control</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button onclick="controlLid('open')" class="lark-button px-4 lg:px-5 py-4 lark-error text-white rounded-lg font-medium flex flex-col items-center space-y-2 w-full">
+                        <span class="text-lg lg:text-xl">🔓</span>
+                        <span class="text-sm">Open Lid</span>
+                    </button>
+                    <button onclick="controlLid('close')" class="lark-button px-4 lg:px-5 py-4 lark-success text-white rounded-lg font-medium flex flex-col items-center space-y-2 w-full">
+                        <span class="text-lg lg:text-xl">🔒</span>
+                        <span class="text-sm">Close Lid</span>
+                    </button>
+                </div>
+                <p class="text-center text-xs lg:text-sm text-gray-600 mt-4">Press to manually control the lid</p>
+            </div>
+        </div>
+
+        <!-- Log Tab -->
+        <div id="log" class="tab-content hidden">
+            <div class="lark-card rounded-lg p-4 lg:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 lg:mb-5 gap-2">
+                    <div>
+                        <h3 class="text-base lg:text-lg font-medium text-gray-900">📋 System Logs</h3>
+                        <p class="text-gray-600 text-xs lg:text-sm">MQTT & Sensor Data</p>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-2 h-2 bg-green-500 rounded-full mr-2 status-indicator"></div>
+                        <span class="text-xs lg:text-sm text-gray-600">Live</span>
+                    </div>
+                </div>
+                <div class="bg-gray-900 text-green-400 p-3 lg:p-4 rounded-lg font-mono text-xs lg:text-sm scrollable" style="max-height: 60vh; -webkit-overflow-scrolling: touch;">
+                    <div id="log-content">
+                        <div class="mb-1">[2024-01-15 14:30:25] MQTT: Connected to broker</div>
+                        <div class="mb-1">[2024-01-15 14:30:26] Sensor: Fill level = 75%</div>
+                        <div class="mb-1">[2024-01-15 14:30:27] Sensor: Lid = Closed</div>
+                        <div class="mb-1">[2024-01-15 14:30:28] MQTT: Publishing data/status</div>
+                        <div class="mb-1">[2024-01-15 14:30:30] Sensor: Fill level = 76%</div>
+                        <div class="mb-1">[2024-01-15 14:30:32] MQTT: Received open_lid command</div>
+                        <div class="mb-1">[2024-01-15 14:30:33] Actuator: Lid opened</div>
+                        <div class="mb-1">[2024-01-15 14:30:35] Sensor: Lid = Open</div>
+                        <div class="mb-1">[2024-01-15 14:30:40] Sensor: Fill level = 78%</div>
+                        <div class="mb-1">[2024-01-15 14:30:45] MQTT: Received close_lid command</div>
+                        <div class="mb-1">[2024-01-15 14:30:46] Actuator: Lid closed</div>
+                        <div class="mb-1">[2024-01-15 14:30:47] Sensor: Lid = Closed</div>
+                    </div>
+                </div>
+                <button onclick="clearLog()" class="mt-4 w-full lark-button py-3 lark-error text-white rounded-lg font-medium text-sm lg:text-base">
+                    🗑️ Clear Logs
+                </button>
+            </div>
+        </div>
+
+        <!-- Notifications Tab -->
+        <div id="notifications" class="tab-content hidden">
+            <div class="lark-card rounded-lg p-4 lg:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 lg:mb-5 gap-2">
+                    <div>
+                        <h3 class="text-base lg:text-lg font-medium text-gray-900">🔔 Notifications</h3>
+                        <p class="text-gray-600 text-xs lg:text-sm">3 active alerts</p>
+                    </div>
+                    <button onclick="resetNotifications()" class="lark-button px-3 lg:px-4 py-2 lark-primary text-white rounded-lg text-xs lg:text-sm font-medium self-start sm:self-auto">
+                        🔄 Reset
+                    </button>
+                </div>
+                
+                <div class="space-y-3 scrollable" style="max-height: 70vh; -webkit-overflow-scrolling: touch;">
+                    <div id="alert-full" class="lark-card rounded-lg p-3 lg:p-4 lark-error-light border-l-4 border-red-400 notification-pulse">
+                        <div class="flex items-start">
+                            <div class="w-7 h-7 lg:w-8 lg:h-8 bg-red-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                <span class="text-red-500 text-xs lg:text-sm">⚠️</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium mb-1 text-sm lg:text-base">Bin Nearly Full!</p>
+                                <p class="text-xs lg:text-sm mb-2 opacity-90">Fill level reached 75%. Please empty the waste bin.</p>
+                                <p class="text-xs opacity-70">15/01/2024, 14:30</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lark-card rounded-lg p-3 lg:p-4 lark-warning-light border-l-4 border-yellow-400">
+                        <div class="flex items-start">
+                            <div class="w-7 h-7 lg:w-8 lg:h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                <span class="text-yellow-600 text-xs lg:text-sm">🔋</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium mb-1 text-sm lg:text-base">Low Battery</p>
+                                <p class="text-xs lg:text-sm mb-2 opacity-90">Battery level: 15%. Please charge or replace battery.</p>
+                                <p class="text-xs opacity-70">15/01/2024, 12:15</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lark-card rounded-lg p-3 lg:p-4 lark-success-light border-l-4 border-green-400">
+                        <div class="flex items-start">
+                            <div class="w-7 h-7 lg:w-8 lg:h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                <span class="text-green-600 text-xs lg:text-sm">✅</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium mb-1 text-sm lg:text-base">System Normal</p>
+                                <p class="text-xs lg:text-sm mb-2 opacity-90">All sensors are functioning properly.</p>
+                                <p class="text-xs opacity-70">15/01/2024, 10:00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history" class="tab-content hidden">
+            <div class="lark-card rounded-lg p-4 lg:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 lg:mb-5 gap-2">
+                    <div>
+                        <h3 class="text-base lg:text-lg font-medium text-gray-900">📊 History Data</h3>
+                        <p class="text-gray-600 text-xs lg:text-sm">Recent sensor readings</p>
+                    </div>
+                    <div class="text-left sm:text-right">
+                        <div class="text-sm font-medium text-gray-700">5 Records</div>
+                        <div class="text-xs text-gray-500">Today</div>
+                    </div>
+                </div>
+                <div class="space-y-3 scrollable" style="max-height: 70vh; -webkit-overflow-scrolling: touch;">
+                    <div class="lark-card rounded-lg p-3 lg:p-4 hover:shadow-md transition-shadow">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 lg:w-10 lg:h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <span class="text-orange-600 font-semibold text-xs lg:text-sm">75%</span>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-medium text-gray-900 text-sm lg:text-base">15/01/2024 14:30</div>
+                                    <div class="text-xs lg:text-sm text-gray-600">Lid: Closed</div>
+                                </div>
+                            </div>
+                            <span class="bg-orange-100 text-orange-700 px-2 lg:px-3 py-1 rounded-full text-xs font-medium self-start sm:self-auto">Nearly Full</span>
+                        </div>
+                    </div>
+                    
+                    <div class="lark-card rounded-lg p-3 lg:p-4 hover:shadow-md transition-shadow">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 lg:w-10 lg:h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <span class="text-yellow-600 font-semibold text-xs lg:text-sm">65%</span>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-medium text-gray-900 text-sm lg:text-base">15/01/2024 14:00</div>
+                                    <div class="text-xs lg:text-sm text-gray-600">Lid: Closed</div>
+                                </div>
+                            </div>
+                            <span class="bg-yellow-100 text-yellow-700 px-2 lg:px-3 py-1 rounded-full text-xs font-medium self-start sm:self-auto">Moderate</span>
+                        </div>
+                    </div>
+                    
+                    <div class="lark-card rounded-lg p-3 lg:p-4 hover:shadow-md transition-shadow">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 lg:w-10 lg:h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <span class="text-yellow-600 font-semibold text-xs lg:text-sm">50%</span>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-medium text-gray-900 text-sm lg:text-base">15/01/2024 13:30</div>
+                                    <div class="text-xs lg:text-sm text-red-600">Lid: Open</div>
+                                </div>
+                            </div>
+                            <span class="bg-yellow-100 text-yellow-700 px-2 lg:px-3 py-1 rounded-full text-xs font-medium self-start sm:self-auto">Moderate</span>
+                        </div>
+                    </div>
+                    
+                    <div class="lark-card rounded-lg p-3 lg:p-4 hover:shadow-md transition-shadow">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 lg:w-10 lg:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <span class="text-green-600 font-semibold text-xs lg:text-sm">35%</span>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-medium text-gray-900 text-sm lg:text-base">15/01/2024 13:00</div>
+                                    <div class="text-xs lg:text-sm text-gray-600">Lid: Closed</div>
+                                </div>
+                            </div>
+                            <span class="bg-green-100 text-green-700 px-2 lg:px-3 py-1 rounded-full text-xs font-medium self-start sm:self-auto">Normal</span>
+                        </div>
+                    </div>
+                    
+                    <div class="lark-card rounded-lg p-3 lg:p-4 hover:shadow-md transition-shadow">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 lg:w-10 lg:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <span class="text-green-600 font-semibold text-xs lg:text-sm">20%</span>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-medium text-gray-900 text-sm lg:text-base">15/01/2024 12:30</div>
+                                    <div class="text-xs lg:text-sm text-gray-600">Lid: Closed</div>
+                                </div>
+                            </div>
+                            <span class="bg-green-100 text-green-700 px-2 lg:px-3 py-1 rounded-full text-xs font-medium self-start sm:self-auto">Normal</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Tab -->
+        <div id="about" class="tab-content hidden">
+            <div class="space-y-3 lg:space-y-4 scrollable" style="max-height: 80vh; -webkit-overflow-scrolling: touch;">
+                <div class="lark-card rounded-lg p-4 lg:p-6">
+                    <div class="text-center mb-4 lg:mb-6">
+                        <div class="w-12 h-12 lg:w-16 lg:h-16 lark-primary rounded-lg flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                            <span class="text-xl lg:text-2xl text-white">🗑️</span>
+                        </div>
+                        <h3 class="text-base lg:text-lg font-semibold text-gray-900">Smart Bin System</h3>
+                        <p class="text-gray-600 text-xs lg:text-sm">Intelligent Waste Management Solution</p>
+                    </div>
+                    
+                    <div class="lark-card rounded-lg p-3 lg:p-4 lark-primary-light">
+                        <h4 class="font-medium mb-2 lg:mb-3 flex items-center text-sm lg:text-base">
+                            <span class="mr-2">🎯</span> Project Objective
+                        </h4>
+                        <p class="text-xs lg:text-sm leading-relaxed opacity-90">
+                            Monitor waste bin fill levels in real-time, control automatic lid operations, and provide notifications 
+                            to improve waste management efficiency.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="lark-card rounded-lg p-4 lg:p-6">
+                    <h4 class="font-medium text-gray-900 mb-3 lg:mb-4 flex items-center text-sm lg:text-base">
+                        <span class="mr-2">⚙️</span> How It Works
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-5 h-5 lg:w-6 lg:h-6 lark-primary rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-white text-xs font-semibold">1</span>
+                            </div>
+                            <p class="text-xs lg:text-sm text-gray-700">Ultrasonic sensor measures waste bin fill level</p>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div class="w-5 h-5 lg:w-6 lg:h-6 lark-success rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-white text-xs font-semibold">2</span>
+                            </div>
+                            <p class="text-xs lg:text-sm text-gray-700">Data transmitted to dashboard via WiFi and MQTT</p>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div class="w-5 h-5 lg:w-6 lg:h-6 lark-warning rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-white text-xs font-semibold">3</span>
+                            </div>
+                            <p class="text-xs lg:text-sm text-gray-700">System sends notifications and controls lid operations</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
+                    <div class="lark-card rounded-lg p-4 lg:p-5 lark-primary-light">
+                        <h5 class="font-medium mb-2 lg:mb-3 flex items-center text-sm lg:text-base">
+                            <span class="mr-2">🔧</span> Hardware
+                        </h5>
+                        <div class="space-y-2">
+                            <div class="flex items-center text-xs lg:text-sm opacity-90">
+                                <span class="w-1.5 h-1.5 bg-current rounded-full mr-2 flex-shrink-0"></span>
+                                ESP32 Microcontroller
+                            </div>
+                            <div class="flex items-center text-xs lg:text-sm opacity-90">
+                                <span class="w-1.5 h-1.5 bg-current rounded-full mr-2 flex-shrink-0"></span>
+                                HC-SR04 Ultrasonic Sensor
+                            </div>
+                            <div class="flex items-center text-xs lg:text-sm opacity-90">
+                                <span class="w-1.5 h-1.5 bg-current rounded-full mr-2 flex-shrink-0"></span>
+                                Servo Motor & LED
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="lark-card rounded-lg p-4 lg:p-5 lark-success-light">
+                        <h5 class="font-medium mb-2 lg:mb-3 flex items-center text-sm lg:text-base">
+                            <span class="mr-2">💻</span> Software
+                        </h5>
+                        <div class="space-y-2">
+                            <div class="flex items-center text-xs lg:text-sm opacity-90">
+                                <span class="w-1.5 h-1.5 bg-current rounded-full mr-2 flex-shrink-0"></span>
+                                Arduino IDE & MQTT
+                            </div>
+                            <div class="flex items-center text-xs lg:text-sm opacity-90">
+                                <span class="w-1.5 h-1.5 bg-current rounded-full mr-2 flex-shrink-0"></span>
+                                Web Dashboard
+                            </div>
+                            <div class="flex items-center text-xs lg:text-sm opacity-90">
+                                <span class="w-1.5 h-1.5 bg-current rounded-full mr-2 flex-shrink-0"></span>
+                                Real-time Database
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lark-card rounded-lg p-4 lg:p-5 lark-warning-light">
+                    <h5 class="font-medium mb-3 lg:mb-4 flex items-center text-sm lg:text-base">
+                        <span class="mr-2">📈</span> System Benefits
+                    </h5>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 lg:gap-3">
+                        <div class="flex items-center text-xs lg:text-sm opacity-90">
+                            <span class="mr-2 flex-shrink-0">✅</span> 24/7 Monitoring
+                        </div>
+                        <div class="flex items-center text-xs lg:text-sm opacity-90">
+                            <span class="mr-2 flex-shrink-0">✅</span> Cost Effective
+                        </div>
+                        <div class="flex items-center text-xs lg:text-sm opacity-90">
+                            <span class="mr-2 flex-shrink-0">✅</span> Easy Interface
+                        </div>
+                        <div class="flex items-center text-xs lg:text-sm opacity-90">
+                            <span class="mr-2 flex-shrink-0">✅</span> Auto Notifications
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lark-card rounded-lg p-4 lg:p-5 text-center">
+                    <div class="w-10 h-10 lg:w-12 lg:h-12 lark-primary rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span class="text-white text-lg lg:text-xl">👨‍💻</span>
+                    </div>
+                    <h5 class="font-medium text-gray-900 mb-2 text-sm lg:text-base">Developed By</h5>
+                    <p class="text-lg lg:text-xl font-semibold text-blue-600 mb-1">Amru Afif</p>
+                    <p class="text-xs lg:text-sm text-gray-600">Smart Bin Monitoring System Developer</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching functionality
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.add('hidden'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.remove('hidden');
+            
+            // Update mobile navigation button styles
+            const mobileButtons = document.querySelectorAll('.bottom-nav .nav-item');
+            mobileButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-gray-500');
+            });
+            
+            const mobileButton = document.getElementById(`tab-${tabName}`);
+            if (mobileButton) {
+                mobileButton.classList.remove('text-gray-500');
+                mobileButton.classList.add('active');
+            }
+            
+            // Update desktop navigation button styles
+            const desktopButtons = document.querySelectorAll('.desktop-nav .nav-item');
+            desktopButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-gray-500');
+            });
+            
+            const desktopButton = document.getElementById(`desktop-tab-${tabName}`);
+            if (desktopButton) {
+                desktopButton.classList.remove('text-gray-500');
+                desktopButton.classList.add('active');
+            }
+        }
+
+        // Lid control functionality
+        function controlLid(action) {
+            const lidStatus = document.getElementById('lid-status');
+            const lidText = document.getElementById('lid-text');
+            const logContent = document.getElementById('log-content');
+            
+            const timestamp = new Date().toLocaleString('ms-MY');
+            
+            if (action === 'open') {
+                lidStatus.className = 'w-5 h-5 lg:w-6 lg:h-6 bg-red-500 rounded-full flex items-center justify-center';
+                lidStatus.innerHTML = '<span class="text-white text-xs lg:text-sm">✗</span>';
+                lidText.textContent = 'Open';
+                lidText.className = 'text-lg lg:text-xl font-semibold mb-1 text-red-600';
+                
+                // Add to log
+                const logEntry = document.createElement('div');
+                logEntry.textContent = `[${timestamp}] MQTT: Received open_lid command`;
+                logContent.appendChild(logEntry);
+                
+                const logEntry2 = document.createElement('div');
+                logEntry2.textContent = `[${timestamp}] Actuator: Lid opened`;
+                logContent.appendChild(logEntry2);
+                
+            } else if (action === 'close') {
+                lidStatus.className = 'w-5 h-5 lg:w-6 lg:h-6 bg-green-500 rounded-full flex items-center justify-center';
+                lidStatus.innerHTML = '<span class="text-white text-xs lg:text-sm">✓</span>';
+                lidText.textContent = 'Closed';
+                lidText.className = 'text-lg lg:text-xl font-semibold mb-1 text-green-600';
+                
+                // Add to log
+                const logEntry = document.createElement('div');
+                logEntry.textContent = `[${timestamp}] MQTT: Received close_lid command`;
+                logContent.appendChild(logEntry);
+                
+                const logEntry2 = document.createElement('div');
+                logEntry2.textContent = `[${timestamp}] Actuator: Lid closed`;
+                logContent.appendChild(logEntry2);
+            }
+            
+            // Scroll log to bottom
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        // Clear log functionality
+        function clearLog() {
+            const logContent = document.getElementById('log-content');
+            logContent.innerHTML = '<div>[' + new Date().toLocaleString('en-US') + '] Log cleared</div>';
+        }
+
+        // Reset notifications
+        function resetNotifications() {
+            const alertFull = document.getElementById('alert-full');
+            alertFull.classList.remove('notification-pulse');
+            alertFull.classList.add('opacity-50');
+            
+            setTimeout(() => {
+                alertFull.classList.add('notification-pulse');
+                alertFull.classList.remove('opacity-50');
+            }, 2000);
+        }
+
+        // Simulate real-time updates
+        function simulateRealTimeUpdates() {
+            const fillLevel = document.getElementById('fill-level');
+            const logContent = document.getElementById('log-content');
+            
+            setInterval(() => {
+                // Random fill level change
+                const currentLevel = parseInt(fillLevel.textContent);
+                const newLevel = Math.max(0, Math.min(100, currentLevel + (Math.random() - 0.5) * 2));
+                fillLevel.textContent = Math.round(newLevel) + '%';
+                
+                // Update color based on level
+                if (newLevel >= 80) {
+                    fillLevel.className = 'text-2xl font-bold text-red-600';
+                } else if (newLevel >= 60) {
+                    fillLevel.className = 'text-2xl font-bold text-orange-600';
+                } else {
+                    fillLevel.className = 'text-2xl font-bold text-green-600';
+                }
+                
+                // Add sensor reading to log
+                const timestamp = new Date().toLocaleString('en-US');
+                const logEntry = document.createElement('div');
+                logEntry.textContent = `[${timestamp}] Sensor: Fill level = ${Math.round(newLevel)}%`;
+                logContent.appendChild(logEntry);
+                
+                // Keep log manageable
+                if (logContent.children.length > 50) {
+                    logContent.removeChild(logContent.firstChild);
+                }
+                
+                logContent.scrollTop = logContent.scrollHeight;
+            }, 5000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            showTab('dashboard');
+            simulateRealTimeUpdates();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'988e50bc9724e708',t:'MTc1OTUxNDE3OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
